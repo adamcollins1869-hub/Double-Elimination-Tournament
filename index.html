@@ -17,7 +17,6 @@
   --text:#f9fafb;
   --muted:#aeb9c8;
   --gold:#f59e0b;
-  --gold2:#d97706;
   --blue:#2563eb;
   --green:#16a34a;
   --red:#dc2626;
@@ -51,7 +50,7 @@ header p{
 }
 
 main{
-  width:min(96%,1400px);
+  width:min(96%,1500px);
   margin:26px auto;
 }
 
@@ -103,9 +102,7 @@ input,select{
   font-size:1rem;
 }
 
-label{
-  font-weight:700;
-}
+label{font-weight:700}
 
 .muted{
   color:var(--muted);
@@ -220,6 +217,11 @@ label{
   opacity:.6;
 }
 
+.bye{
+  color:#93a4b8;
+  font-style:italic;
+}
+
 .winButton{
   background:var(--green);
   color:white;
@@ -273,17 +275,17 @@ label{
 
 <main>
 
-<div class="tabs" id="tabs">
+<div class="tabs">
   <button id="bracketTab" class="primary">Bracket</button>
   <button id="adminTab" class="secondary">Admin</button>
 </div>
 
-<!-- PUBLIC -->
 <section id="bracketView" class="card">
 
   <h2>🏆 Tournament Bracket</h2>
 
   <label>Tournament</label>
+
   <select id="publicTournament">
     <option value="">Choose a tournament...</option>
   </select>
@@ -293,7 +295,7 @@ label{
 
 </section>
 
-<!-- ADMIN -->
+
 <section id="adminView" class="card" style="display:none">
 
 <div id="adminLogin">
@@ -322,6 +324,7 @@ label{
 <div id="adminPanel" style="display:none">
 
 <h2>Tournament Admin</h2>
+
 
 <div class="section">
 
@@ -366,8 +369,8 @@ label{
 <h3>Teams</h3>
 
 <p class="muted">
-Add between 2 and 10 teams. Teams will be randomly
-drawn when the bracket is generated.
+Add between 2 and 10 teams. Teams are randomly drawn when
+you generate the bracket.
 </p>
 
 <form id="addTeamForm">
@@ -397,24 +400,15 @@ drawn when the bracket is generated.
 
 <div class="row">
 
-<button
-  id="generateBtn"
-  class="success"
->
+<button id="generateBtn" class="success">
 Generate Bracket
 </button>
 
-<button
-  id="resetBtn"
-  class="purple"
->
+<button id="resetBtn" class="purple">
 Reset Bracket
 </button>
 
-<button
-  id="deleteTournamentBtn"
-  class="danger"
->
+<button id="deleteTournamentBtn" class="danger">
 Delete Tournament
 </button>
 
@@ -429,7 +423,8 @@ Delete Tournament
 
 <p class="muted">
 Click <strong>Winner</strong> beside the team that won.
-The bracket will automatically advance both teams.
+The winner advances in the Winners or Losers Bracket and
+the losing team is routed automatically.
 </p>
 
 <div id="adminBracket"></div>
@@ -455,6 +450,7 @@ Log Out
 
 </main>
 
+
 <script>
 
 /* =====================================================
@@ -475,7 +471,7 @@ supabase.createClient(
 
 
 /* =====================================================
-   BASIC UI
+   UI
 ===================================================== */
 
 const bracketView =
@@ -574,8 +570,8 @@ document.getElementById('publicTournament');
 const adminSelect =
 document.getElementById('adminTournament');
 
-const oldPublic = publicSelect.value;
-const oldAdmin = adminSelect.value;
+const oldPublic=publicSelect.value;
+const oldAdmin=adminSelect.value;
 
 publicSelect.innerHTML =
 '<option value="">Choose a tournament...</option>';
@@ -583,23 +579,28 @@ publicSelect.innerHTML =
 adminSelect.innerHTML =
 '<option value="">Choose a tournament...</option>';
 
-data.forEach(t => {
+(data || []).forEach(t=>{
 
 const a=document.createElement('option');
+
 a.value=t.id;
 a.textContent=t.name;
 
-const b=a.cloneNode(true);
-
 publicSelect.appendChild(a);
+
+const b=document.createElement('option');
+
+b.value=t.id;
+b.textContent=t.name;
+
 adminSelect.appendChild(b);
 
 });
 
-if(data.some(t=>t.id===oldPublic))
+if((data || []).some(t=>t.id===oldPublic))
   publicSelect.value=oldPublic;
 
-if(data.some(t=>t.id===oldAdmin))
+if((data || []).some(t=>t.id===oldAdmin))
   adminSelect.value=oldAdmin;
 
 }
@@ -612,6 +613,8 @@ e.preventDefault();
 
 const name =
 document.getElementById('tournamentName').value.trim();
+
+if(!name) return;
 
 const {data,error} =
 await sb
@@ -663,14 +666,28 @@ if(!tournamentId){
 const name =
 document.getElementById('teamName').value.trim();
 
+if(!name) return;
+
 const {count} =
 await sb
 .from('teams')
 .select('*',{count:'exact',head:true})
 .eq('tournament_id',tournamentId);
 
-if(count >= 10){
+if(count>=10){
   alert('Maximum of 10 teams.');
+  return;
+}
+
+const {data:tournament} =
+await sb
+.from('tournaments')
+.select('status')
+.eq('id',tournamentId)
+.single();
+
+if(tournament?.status==='active'){
+  alert('Reset the bracket before adding teams.');
   return;
 }
 
@@ -690,7 +707,6 @@ if(error){
 e.target.reset();
 
 await loadTeams();
-await loadTournaments();
 
 };
 
@@ -722,7 +738,7 @@ if(error){
 
 box.innerHTML='';
 
-data.forEach(team=>{
+(data || []).forEach(team=>{
 
 const row=document.createElement('div');
 row.className='teamRow';
@@ -732,7 +748,7 @@ const name=document.createElement('span');
 name.textContent =
 team.name +
 (team.eliminated ? ' — ELIMINATED' : '') +
-` (${team.losses} loss${team.losses===1?'':'es'})`;
+` (${team.losses || 0} loss${team.losses===1?'':'es'})`;
 
 const buttons=document.createElement('div');
 buttons.className='teamButtons';
@@ -760,11 +776,22 @@ box.appendChild(row);
 
 async function editTeam(team){
 
-const name =
-prompt('Team name:',team.name);
+const name=prompt('Team name:',team.name);
 
 if(name===null || !name.trim())
   return;
+
+const {data:tournament} =
+await sb
+.from('tournaments')
+.select('status')
+.eq('id',team.tournament_id)
+.single();
+
+if(tournament?.status==='active'){
+  alert('Reset the bracket before editing teams.');
+  return;
+}
 
 const {error} =
 await sb
@@ -784,6 +811,18 @@ await refreshBrackets();
 
 
 async function deleteTeam(team){
+
+const {data:tournament} =
+await sb
+.from('tournaments')
+.select('status')
+.eq('id',team.tournament_id)
+.single();
+
+if(tournament?.status==='active'){
+  alert('Reset the bracket before deleting teams.');
+  return;
+}
 
 if(!confirm(`Delete ${team.name}?`))
   return;
@@ -805,7 +844,7 @@ await loadTeams();
 
 
 /* =====================================================
-   RANDOM HELPERS
+   RANDOM SHUFFLE
 ===================================================== */
 
 function shuffle(array){
@@ -826,7 +865,514 @@ return a;
 
 
 /* =====================================================
-   BRACKET CREATION
+   BRACKET SIZE
+===================================================== */
+
+function getBracketSize(teamCount){
+
+if(teamCount<=2) return 2;
+if(teamCount<=4) return 4;
+if(teamCount<=8) return 8;
+
+return 16;
+
+}
+
+
+/* =====================================================
+   SLOT ORDERS
+
+   These distribute teams so byes are spread through
+   the opening round rather than clustered together.
+===================================================== */
+
+function getSlotOrder(size){
+
+if(size===2)
+  return [0,1];
+
+if(size===4)
+  return [0,2,1,3];
+
+if(size===8)
+  return [0,4,2,6,1,5,3,7];
+
+return [
+  0,8,4,12,2,10,6,14,
+  1,9,5,13,3,11,7,15
+];
+
+}
+
+
+/* =====================================================
+   BUILD MATCH DEFINITIONS
+===================================================== */
+
+function buildBracketDefinition(size){
+
+const matches=[];
+const links={};
+
+
+/* ----------------- 2 SLOT ----------------- */
+
+if(size===2){
+
+matches.push(
+{
+ key:'W1-1',
+ bracket:'W',
+ round_number:1,
+ match_number:1,
+ label:'Winners Bracket Final',
+ display_order:10
+},
+{
+ key:'F1-1',
+ bracket:'F',
+ round_number:1,
+ match_number:1,
+ label:'Grand Final',
+ display_order:200
+},
+{
+ key:'F2-1',
+ bracket:'F',
+ round_number:2,
+ match_number:1,
+ label:'Grand Final Reset',
+ display_order:210,
+ active:false,
+ is_reset_final:true
+}
+);
+
+links['W1-1']=['F1-1',1,'F1-1',2];
+
+return {matches,links};
+
+}
+
+
+/* ----------------- 4 SLOT ----------------- */
+
+if(size===4){
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`W1-${i}`,
+ bracket:'W',
+ round_number:1,
+ match_number:i,
+ label:`Winners Round 1 • Game ${i}`,
+ display_order:10+i
+});
+
+}
+
+matches.push({
+ key:'W2-1',
+ bracket:'W',
+ round_number:2,
+ match_number:1,
+ label:'Winners Bracket Final',
+ display_order:30
+});
+
+matches.push({
+ key:'L1-1',
+ bracket:'L',
+ round_number:1,
+ match_number:1,
+ label:'Losers Round 1',
+ display_order:100
+});
+
+matches.push({
+ key:'L2-1',
+ bracket:'L',
+ round_number:2,
+ match_number:1,
+ label:'Losers Bracket Final',
+ display_order:110
+});
+
+matches.push(
+{
+ key:'F1-1',
+ bracket:'F',
+ round_number:1,
+ match_number:1,
+ label:'Grand Final',
+ display_order:200
+},
+{
+ key:'F2-1',
+ bracket:'F',
+ round_number:2,
+ match_number:1,
+ label:'Grand Final Reset',
+ display_order:210,
+ active:false,
+ is_reset_final:true
+}
+);
+
+links['W1-1']=['W2-1',1,'L1-1',1];
+links['W1-2']=['W2-1',2,'L1-1',2];
+
+links['L1-1']=['L2-1',1,null,null];
+
+links['W2-1']=['F1-1',1,'L2-1',2];
+
+links['L2-1']=['F1-1',2,null,null];
+
+return {matches,links};
+
+}
+
+
+/* ----------------- 8 SLOT ----------------- */
+
+if(size===8){
+
+for(let i=1;i<=4;i++){
+
+matches.push({
+ key:`W1-${i}`,
+ bracket:'W',
+ round_number:1,
+ match_number:i,
+ label:`Winners Round 1 • Game ${i}`,
+ display_order:10+i
+});
+
+}
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`W2-${i}`,
+ bracket:'W',
+ round_number:2,
+ match_number:i,
+ label:`Winners Semifinal • Game ${i}`,
+ display_order:30+i
+});
+
+}
+
+matches.push({
+ key:'W3-1',
+ bracket:'W',
+ round_number:3,
+ match_number:1,
+ label:'Winners Bracket Final',
+ display_order:50
+});
+
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`L1-${i}`,
+ bracket:'L',
+ round_number:1,
+ match_number:i,
+ label:`Losers Round 1 • Game ${i}`,
+ display_order:100+i
+});
+
+}
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`L2-${i}`,
+ bracket:'L',
+ round_number:2,
+ match_number:i,
+ label:`Losers Round 2 • Game ${i}`,
+ display_order:110+i
+});
+
+}
+
+matches.push({
+ key:'L3-1',
+ bracket:'L',
+ round_number:3,
+ match_number:1,
+ label:'Losers Semifinal',
+ display_order:120
+});
+
+matches.push({
+ key:'L4-1',
+ bracket:'L',
+ round_number:4,
+ match_number:1,
+ label:'Losers Bracket Final',
+ display_order:130
+});
+
+
+matches.push(
+{
+ key:'F1-1',
+ bracket:'F',
+ round_number:1,
+ match_number:1,
+ label:'Grand Final',
+ display_order:200
+},
+{
+ key:'F2-1',
+ bracket:'F',
+ round_number:2,
+ match_number:1,
+ label:'Grand Final Reset',
+ display_order:210,
+ active:false,
+ is_reset_final:true
+}
+);
+
+
+links['W1-1']=['W2-1',1,'L1-1',1];
+links['W1-2']=['W2-1',2,'L1-1',2];
+
+links['W1-3']=['W2-2',1,'L1-2',1];
+links['W1-4']=['W2-2',2,'L1-2',2];
+
+
+links['L1-1']=['L2-1',1,null,null];
+links['L1-2']=['L2-2',1,null,null];
+
+
+links['W2-1']=['W3-1',1,'L2-1',2];
+links['W2-2']=['W3-1',2,'L2-2',2];
+
+
+links['L2-1']=['L3-1',1,null,null];
+links['L2-2']=['L3-1',2,null,null];
+
+
+links['L3-1']=['L4-1',1,null,null];
+
+links['W3-1']=['F1-1',1,'L4-1',2];
+
+links['L4-1']=['F1-1',2,null,null];
+
+return {matches,links};
+
+}
+
+
+/* ----------------- 16 SLOT ----------------- */
+
+for(let i=1;i<=8;i++){
+
+matches.push({
+ key:`W1-${i}`,
+ bracket:'W',
+ round_number:1,
+ match_number:i,
+ label:`Winners Round 1 • Game ${i}`,
+ display_order:10+i
+});
+
+}
+
+for(let i=1;i<=4;i++){
+
+matches.push({
+ key:`W2-${i}`,
+ bracket:'W',
+ round_number:2,
+ match_number:i,
+ label:`Winners Round 2 • Game ${i}`,
+ display_order:30+i
+});
+
+}
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`W3-${i}`,
+ bracket:'W',
+ round_number:3,
+ match_number:i,
+ label:`Winners Semifinal • Game ${i}`,
+ display_order:50+i
+});
+
+}
+
+matches.push({
+ key:'W4-1',
+ bracket:'W',
+ round_number:4,
+ match_number:1,
+ label:'Winners Bracket Final',
+ display_order:70
+});
+
+
+for(let i=1;i<=4;i++){
+
+matches.push({
+ key:`L1-${i}`,
+ bracket:'L',
+ round_number:1,
+ match_number:i,
+ label:`Losers Round 1 • Game ${i}`,
+ display_order:100+i
+});
+
+}
+
+for(let i=1;i<=4;i++){
+
+matches.push({
+ key:`L2-${i}`,
+ bracket:'L',
+ round_number:2,
+ match_number:i,
+ label:`Losers Round 2 • Game ${i}`,
+ display_order:110+i
+});
+
+}
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`L3-${i}`,
+ bracket:'L',
+ round_number:3,
+ match_number:i,
+ label:`Losers Round 3 • Game ${i}`,
+ display_order:120+i
+});
+
+}
+
+for(let i=1;i<=2;i++){
+
+matches.push({
+ key:`L4-${i}`,
+ bracket:'L',
+ round_number:4,
+ match_number:i,
+ label:`Losers Round 4 • Game ${i}`,
+ display_order:130+i
+});
+
+}
+
+matches.push({
+ key:'L5-1',
+ bracket:'L',
+ round_number:5,
+ match_number:1,
+ label:'Losers Semifinal',
+ display_order:140
+});
+
+matches.push({
+ key:'L6-1',
+ bracket:'L',
+ round_number:6,
+ match_number:1,
+ label:'Losers Bracket Final',
+ display_order:150
+});
+
+
+matches.push(
+{
+ key:'F1-1',
+ bracket:'F',
+ round_number:1,
+ match_number:1,
+ label:'Grand Final',
+ display_order:200
+},
+{
+ key:'F2-1',
+ bracket:'F',
+ round_number:2,
+ match_number:1,
+ label:'Grand Final Reset',
+ display_order:210,
+ active:false,
+ is_reset_final:true
+}
+);
+
+
+links['W1-1']=['W2-1',1,'L1-1',1];
+links['W1-2']=['W2-1',2,'L1-1',2];
+
+links['W1-3']=['W2-2',1,'L1-2',1];
+links['W1-4']=['W2-2',2,'L1-2',2];
+
+links['W1-5']=['W2-3',1,'L1-3',1];
+links['W1-6']=['W2-3',2,'L1-3',2];
+
+links['W1-7']=['W2-4',1,'L1-4',1];
+links['W1-8']=['W2-4',2,'L1-4',2];
+
+
+links['L1-1']=['L2-1',1,null,null];
+links['L1-2']=['L2-2',1,null,null];
+links['L1-3']=['L2-3',1,null,null];
+links['L1-4']=['L2-4',1,null,null];
+
+
+links['W2-1']=['W3-1',1,'L2-1',2];
+links['W2-2']=['W3-1',2,'L2-2',2];
+
+links['W2-3']=['W3-2',1,'L2-3',2];
+links['W2-4']=['W3-2',2,'L2-4',2];
+
+
+links['L2-1']=['L3-1',1,null,null];
+links['L2-2']=['L3-1',2,null,null];
+
+links['L2-3']=['L3-2',1,null,null];
+links['L2-4']=['L3-2',2,null,null];
+
+
+links['L3-1']=['L4-1',1,null,null];
+links['L3-2']=['L4-2',1,null,null];
+
+
+links['W3-1']=['W4-1',1,'L4-1',2];
+links['W3-2']=['W4-1',2,'L4-2',2];
+
+
+links['L4-1']=['L5-1',1,null,null];
+links['L4-2']=['L5-1',2,null,null];
+
+
+links['L5-1']=['L6-1',1,null,null];
+
+links['W4-1']=['F1-1',1,'L6-1',2];
+
+links['L6-1']=['F1-1',2,null,null];
+
+return {matches,links};
+
+}
+
+
+/* =====================================================
+   GENERATE BRACKET
 ===================================================== */
 
 async function generateBracket(){
@@ -850,15 +1396,16 @@ if(error){
   return;
 }
 
-if(teams.length < 2){
+if(!teams || teams.length<2){
   alert('Add at least 2 teams.');
   return;
 }
 
-if(teams.length > 10){
+if(teams.length>10){
   alert('This site supports up to 10 teams.');
   return;
 }
+
 
 const {count} =
 await sb
@@ -866,228 +1413,92 @@ await sb
 .select('*',{count:'exact',head:true})
 .eq('tournament_id',tournamentId);
 
+
 if(count>0){
 
 if(!confirm(
-  'A bracket already exists. Reset it and generate a new random draw?'
+'A bracket already exists. Generate a new random bracket? Existing results will be erased.'
 )){
   return;
 }
 
+const {error:resetError} =
 await sb.rpc(
-  'reset_tournament_bracket',
-  {p_tournament_id:tournamentId}
+'reset_tournament_bracket',
+{p_tournament_id:tournamentId}
 );
+
+if(resetError){
+  alert(resetError.message);
+  return;
+}
 
 }
 
-/*
-  We use a 16-position Winners Bracket.
 
-  The 10 or fewer teams are shuffled first.
-  Teams are then distributed across opening
-  positions so byes advance automatically.
-*/
+const size=getBracketSize(teams.length);
 
 const shuffled=shuffle(teams);
 
-const slots=new Array(16).fill(null);
+const slots=new Array(size).fill(null);
 
-/*
-  Spread real teams across the 16 slots.
-  This prevents all of the byes from
-  clustering on one side.
-*/
+const slotOrder=getSlotOrder(size);
 
-const slotOrder=[
-  0,8,4,12,2,10,6,14,
-  1,9
-];
 
 shuffled.forEach((team,index)=>{
   slots[slotOrder[index]]=team.id;
 });
 
 
-const matches=[];
+const definition =
+buildBracketDefinition(size);
 
+const matches =
+definition.matches;
 
-/* WINNERS ROUND 1 */
-
-for(let i=0;i<8;i++){
-
-matches.push({
-  key:`W1-${i+1}`,
-  bracket:'W',
-  round_number:1,
-  match_number:i+1,
-  label:`Winners Round 1 • Game ${i+1}`,
-  team1_id:slots[i*2],
-  team2_id:slots[i*2+1],
-  display_order:i+1
-});
-
-}
-
-
-/* WINNERS ROUND 2 */
-
-for(let i=0;i<4;i++){
-
-matches.push({
-  key:`W2-${i+1}`,
-  bracket:'W',
-  round_number:2,
-  match_number:i+1,
-  label:`Winners Round 2 • Game ${i+1}`,
-  display_order:20+i
-});
-
-}
-
-
-/* WINNERS ROUND 3 */
-
-for(let i=0;i<2;i++){
-
-matches.push({
-  key:`W3-${i+1}`,
-  bracket:'W',
-  round_number:3,
-  match_number:i+1,
-  label:`Winners Semifinal ${i+1}`,
-  display_order:30+i
-});
-
-}
-
-
-/* WINNERS FINAL */
-
-matches.push({
-  key:'W4-1',
-  bracket:'W',
-  round_number:4,
-  match_number:1,
-  label:'Winners Bracket Final',
-  display_order:40
-});
+const links =
+definition.links;
 
 
 /*
-  LOSERS BRACKET
-
-  16-slot double elimination requires
-  six losers-bracket rounds.
+  Put the teams into Winners Round 1.
 */
 
-for(let i=0;i<4;i++){
-
-matches.push({
-  key:`L1-${i+1}`,
-  bracket:'L',
-  round_number:1,
-  match_number:i+1,
-  label:`Losers Round 1 • Game ${i+1}`,
-  display_order:100+i
-});
-
-}
-
-for(let i=0;i<4;i++){
-
-matches.push({
-  key:`L2-${i+1}`,
-  bracket:'L',
-  round_number:2,
-  match_number:i+1,
-  label:`Losers Round 2 • Game ${i+1}`,
-  display_order:110+i
-});
-
-}
-
-for(let i=0;i<2;i++){
-
-matches.push({
-  key:`L3-${i+1}`,
-  bracket:'L',
-  round_number:3,
-  match_number:i+1,
-  label:`Losers Round 3 • Game ${i+1}`,
-  display_order:120+i
-});
-
-}
-
-for(let i=0;i<2;i++){
-
-matches.push({
-  key:`L4-${i+1}`,
-  bracket:'L',
-  round_number:4,
-  match_number:i+1,
-  label:`Losers Round 4 • Game ${i+1}`,
-  display_order:130+i
-});
-
-}
-
-matches.push({
-  key:'L5-1',
-  bracket:'L',
-  round_number:5,
-  match_number:1,
-  label:'Losers Semifinal',
-  display_order:140
-});
-
-matches.push({
-  key:'L6-1',
-  bracket:'L',
-  round_number:6,
-  match_number:1,
-  label:'Losers Bracket Final',
-  display_order:150
-});
+const openingMatches =
+matches
+.filter(m=>m.bracket==='W' && m.round_number===1)
+.sort((a,b)=>a.match_number-b.match_number);
 
 
-/* GRAND FINALS */
+openingMatches.forEach((match,index)=>{
 
-matches.push({
-  key:'F1-1',
-  bracket:'F',
-  round_number:1,
-  match_number:1,
-  label:'Grand Final',
-  display_order:200
-});
+match.team1_id=slots[index*2] || null;
+match.team2_id=slots[index*2+1] || null;
 
-matches.push({
-  key:'F2-1',
-  bracket:'F',
-  round_number:2,
-  match_number:1,
-  label:'Grand Final Reset',
-  display_order:210,
-  active:false,
-  is_reset_final:true
 });
 
 
 const inserts =
 matches.map(m=>({
-  tournament_id:tournamentId,
-  bracket:m.bracket,
-  round_number:m.round_number,
-  match_number:m.match_number,
-  label:m.label,
-  team1_id:m.team1_id || null,
-  team2_id:m.team2_id || null,
-  display_order:m.display_order,
-  active:m.active===false ? false:true,
-  is_reset_final:m.is_reset_final || false,
-  notes:m.key
+
+tournament_id:tournamentId,
+bracket:m.bracket,
+round_number:m.round_number,
+match_number:m.match_number,
+label:m.label,
+
+team1_id:m.team1_id || null,
+team2_id:m.team2_id || null,
+
+display_order:m.display_order,
+
+active:m.active===false ? false:true,
+
+is_reset_final:
+m.is_reset_final || false,
+
+notes:m.key
+
 }));
 
 
@@ -1110,67 +1521,11 @@ created.forEach(m=>{
 });
 
 
-const links={
-
-'W1-1':['W2-1',1,'L1-1',1],
-'W1-2':['W2-1',2,'L1-1',2],
-
-'W1-3':['W2-2',1,'L1-2',1],
-'W1-4':['W2-2',2,'L1-2',2],
-
-'W1-5':['W2-3',1,'L1-3',1],
-'W1-6':['W2-3',2,'L1-3',2],
-
-'W1-7':['W2-4',1,'L1-4',1],
-'W1-8':['W2-4',2,'L1-4',2],
-
-
-'W2-1':['W3-1',1,'L2-1',2],
-'W2-2':['W3-1',2,'L2-2',2],
-
-'W2-3':['W3-2',1,'L2-3',2],
-'W2-4':['W3-2',2,'L2-4',2],
-
-
-'W3-1':['W4-1',1,'L4-1',2],
-'W3-2':['W4-1',2,'L4-2',2],
-
-
-'W4-1':['F1-1',1,'L6-1',2],
-
-
-'L1-1':['L2-1',1,null,null],
-'L1-2':['L2-2',1,null,null],
-'L1-3':['L2-3',1,null,null],
-'L1-4':['L2-4',1,null,null],
-
-
-'L2-1':['L3-1',1,null,null],
-'L2-2':['L3-1',2,null,null],
-
-'L2-3':['L3-2',1,null,null],
-'L2-4':['L3-2',2,null,null],
-
-
-'L3-1':['L4-1',1,null,null],
-'L3-2':['L4-2',1,null,null],
-
-
-'L4-1':['L5-1',1,null,null],
-'L4-2':['L5-1',2,null,null],
-
-
-'L5-1':['L6-1',1,null,null],
-
-
-'L6-1':['F1-1',2,null,null]
-
-};
-
-
 for(const [key,value] of Object.entries(links)){
 
 const match=map[key];
+
+if(!match) continue;
 
 const winnerNext =
 value[0] ? map[value[0]] : null;
@@ -1178,6 +1533,8 @@ value[0] ? map[value[0]] : null;
 const loserNext =
 value[2] ? map[value[2]] : null;
 
+
+const {error:updateError} =
 await sb
 .from('matches')
 .update({
@@ -1197,29 +1554,59 @@ value[3] || null
 })
 .eq('id',match.id);
 
+
+if(updateError){
+  alert(updateError.message);
+  return;
+}
+
 }
 
 
+const {error:tournamentError} =
 await sb
 .from('tournaments')
 .update({
   status:'active',
-  bracket_size:16,
+  bracket_size:size,
   champion_team_id:null
 })
 .eq('id',tournamentId);
 
 
+if(tournamentError){
+  alert(tournamentError.message);
+  return;
+}
+
+
 /*
-  Automatically advance opening byes.
+  Reset team tournament state.
+*/
+
+await sb
+.from('teams')
+.update({
+  losses:0,
+  eliminated:false
+})
+.eq('tournament_id',tournamentId);
+
+
+/*
+  Automatically move teams through opening byes.
 */
 
 await processByes(tournamentId);
 
 await loadAdminTournament();
-await loadPublicTournament();
+await loadTournaments();
 
-alert('Random double-elimination bracket generated.');
+document.getElementById('adminTournament').value=tournamentId;
+
+alert(
+`Random ${size}-slot double-elimination bracket generated for ${teams.length} teams.`
+);
 
 }
 
@@ -1229,18 +1616,20 @@ generateBracket;
 
 
 /* =====================================================
-   BYES
+   BYE PROCESSING
 ===================================================== */
 
 async function processByes(tournamentId){
 
 let changed=true;
+let safety=0;
 
-while(changed){
+while(changed && safety<50){
 
+safety++;
 changed=false;
 
-const {data:matches} =
+const {data:matches,error} =
 await sb
 .from('matches')
 .select('*')
@@ -1248,51 +1637,63 @@ await sb
 .eq('active',true)
 .order('display_order');
 
-for(const match of matches){
+if(error){
+  console.error(error);
+  return;
+}
+
+
+for(const match of matches || []){
 
 if(match.completed)
   continue;
 
-const one =
-!!match.team1_id;
-
-const two =
-!!match.team2_id;
+const has1=!!match.team1_id;
+const has2=!!match.team2_id;
 
 
 /*
-  A bye is only automatically advanced
-  when the other input to the match can
-  no longer be supplied by an earlier match.
+  Only one team currently exists in this match.
 */
 
-if(one !== two){
+if(has1 !== has2){
 
-const missingSlot =
-one ? 2 : 1;
+const missingSlot=has1 ? 2 : 1;
 
-const {data:feeders} =
-await sb
-.from('matches')
-.select('id,completed')
-.eq('tournament_id',tournamentId)
-.or(
-  `and(winner_next_match_id.eq.${match.id},winner_next_slot.eq.${missingSlot}),and(loser_next_match_id.eq.${match.id},loser_next_slot.eq.${missingSlot})`
+const feeders=(matches || []).filter(m=>
+
+(
+m.winner_next_match_id===match.id &&
+m.winner_next_slot===missingSlot
+)
+
+||
+
+(
+m.loser_next_match_id===match.id &&
+m.loser_next_slot===missingSlot
+)
+
 );
+
+
+/*
+  If there is an unfinished feeder, the missing
+  team may still arrive later. Do not advance yet.
+*/
 
 const waiting =
-feeders &&
 feeders.some(f=>!f.completed);
 
-if(!waiting){
+if(waiting)
+  continue;
 
-const winner =
-one ? match.team1_id : match.team2_id;
 
-await advanceBye(
-  match,
-  winner
-);
+const winnerId =
+has1 ? match.team1_id : match.team2_id;
+
+
+await advanceBye(match,winnerId);
 
 changed=true;
 
@@ -1304,11 +1705,16 @@ changed=true;
 
 }
 
-}
 
+/* =====================================================
+   ADVANCE A BYE
+
+   A bye is not a loss for anyone.
+===================================================== */
 
 async function advanceBye(match,winnerId){
 
+const {error} =
 await sb
 .from('matches')
 .update({
@@ -1317,6 +1723,11 @@ await sb
   completed:true
 })
 .eq('id',match.id);
+
+if(error){
+  console.error(error);
+  return;
+}
 
 
 if(match.winner_next_match_id){
@@ -1331,10 +1742,7 @@ await sb
 .update({
   [field]:winnerId
 })
-.eq(
-  'id',
-  match.winner_next_match_id
-);
+.eq('id',match.winner_next_match_id);
 
 }
 
@@ -1342,39 +1750,41 @@ await sb
 
 
 /* =====================================================
-   RECORD WINNER
+   CHOOSE WINNER
 ===================================================== */
 
-async function chooseWinner(
-matchId,
-teamId
-){
+async function chooseWinner(matchId,teamId){
 
 if(!confirm('Record this team as the winner?'))
   return;
 
+
 const {error} =
 await sb.rpc(
-  'record_match_winner',
-  {
-    p_match_id:matchId,
-    p_winner_id:teamId
-  }
+'record_match_winner',
+{
+  p_match_id:matchId,
+  p_winner_id:teamId
+}
 );
+
 
 if(error){
   alert(error.message);
   return;
 }
 
+
 const tournamentId =
 document.getElementById('adminTournament').value;
+
 
 await processByes(tournamentId);
 
 await handleFinals(tournamentId);
 
 await loadTeams();
+
 await refreshBrackets();
 
 }
@@ -1386,7 +1796,7 @@ await refreshBrackets();
 
 async function handleFinals(tournamentId){
 
-const {data:finals} =
+const {data:finals,error} =
 await sb
 .from('matches')
 .select('*')
@@ -1394,33 +1804,40 @@ await sb
 .eq('bracket','F')
 .order('round_number');
 
+if(error || !finals)
+  return;
+
+
 const first =
 finals.find(f=>f.round_number===1);
 
 const reset =
 finals.find(f=>f.round_number===2);
 
+
 if(!first || !first.completed)
   return;
 
 
 /*
-  team1 enters the Grand Final undefeated.
-  team2 comes from the losers bracket.
+  Grand Final team1 is the undefeated Winners
+  Bracket champion.
 
-  If team1 wins, tournament is over.
-  If team2 wins, both now have one loss,
-  so the reset final becomes active.
+  If team1 wins, tournament is complete.
+
+  If team2 wins, the undefeated team has now
+  received its first loss, so a reset final is
+  required.
 */
 
 if(first.winner_id===first.team1_id){
 
 await sb.rpc(
-  'set_tournament_champion',
-  {
-    p_tournament_id:tournamentId,
-    p_team_id:first.winner_id
-  }
+'set_tournament_champion',
+{
+  p_tournament_id:tournamentId,
+  p_team_id:first.winner_id
+}
 );
 
 return;
@@ -1428,9 +1845,11 @@ return;
 }
 
 
-if(first.winner_id===first.team2_id){
-
-if(!reset.active){
+if(
+first.winner_id===first.team2_id &&
+reset &&
+!reset.active
+){
 
 await sb
 .from('matches')
@@ -1441,19 +1860,24 @@ await sb
 })
 .eq('id',reset.id);
 
-}
+return;
 
 }
 
 
-if(reset.active && reset.completed){
+if(
+reset &&
+reset.active &&
+reset.completed &&
+reset.winner_id
+){
 
 await sb.rpc(
-  'set_tournament_champion',
-  {
-    p_tournament_id:tournamentId,
-    p_team_id:reset.winner_id
-  }
+'set_tournament_champion',
+{
+  p_tournament_id:tournamentId,
+  p_team_id:reset.winner_id
+}
 );
 
 }
@@ -1462,7 +1886,7 @@ await sb.rpc(
 
 
 /* =====================================================
-   RESET
+   RESET BRACKET
 ===================================================== */
 
 document.getElementById('resetBtn').onclick =
@@ -1471,13 +1895,16 @@ async () => {
 const id =
 document.getElementById('adminTournament').value;
 
-if(!id)
+if(!id){
+  alert('Choose a tournament first.');
   return;
+}
 
 if(!confirm(
-'Reset the entire bracket? Team names will remain.'
+'Reset the entire bracket? Team names will remain, but all games and results will be erased.'
 ))
   return;
+
 
 const {error} =
 await sb.rpc(
@@ -1485,14 +1912,22 @@ await sb.rpc(
 {p_tournament_id:id}
 );
 
+
 if(error){
   alert(error.message);
   return;
 }
 
+
 await loadTeams();
+
 await loadAdminTournament();
+
 await loadTournaments();
+
+document.getElementById('adminTournament').value=id;
+
+alert('Bracket reset. Your teams were kept.');
 
 };
 
@@ -1507,13 +1942,17 @@ async () => {
 const id =
 document.getElementById('adminTournament').value;
 
-if(!id)
+if(!id){
+  alert('Choose a tournament first.');
   return;
+}
+
 
 if(!confirm(
-'Permanently delete this tournament, its teams, and all results?'
+'Permanently delete this tournament, all teams, and all results?'
 ))
   return;
+
 
 const {error} =
 await sb.rpc(
@@ -1521,39 +1960,52 @@ await sb.rpc(
 {p_tournament_id:id}
 );
 
+
 if(error){
   alert(error.message);
   return;
 }
 
-await loadTournaments();
 
 document.getElementById('teamList').innerHTML='';
 document.getElementById('adminBracket').innerHTML='';
+document.getElementById('adminTournamentStatus').innerHTML='';
+
+await loadTournaments();
 
 };
 
 
 /* =====================================================
-   BRACKET DISPLAY
+   GET TOURNAMENT DATA
 ===================================================== */
 
 async function getTournamentData(id){
 
-const {data:tournament} =
+const {data:tournament,error:tournamentError} =
 await sb
 .from('tournaments')
 .select('*')
 .eq('id',id)
 .single();
 
-const {data:teams} =
+
+if(tournamentError)
+  throw tournamentError;
+
+
+const {data:teams,error:teamError} =
 await sb
 .from('teams')
 .select('*')
 .eq('tournament_id',id);
 
-const {data:matches} =
+
+if(teamError)
+  throw teamError;
+
+
+const {data:matches,error:matchError} =
 await sb
 .from('matches')
 .select('*')
@@ -1561,21 +2013,31 @@ await sb
 .eq('active',true)
 .order('display_order');
 
+
+if(matchError)
+  throw matchError;
+
+
 const teamMap={};
 
-teams.forEach(t=>{
+(teams || []).forEach(t=>{
   teamMap[t.id]=t;
 });
 
+
 return{
   tournament,
-  teams,
-  matches,
+  teams:teams || [],
+  matches:matches || [],
   teamMap
 };
 
 }
 
+
+/* =====================================================
+   BRACKET DISPLAY
+===================================================== */
 
 function teamName(id,map){
 
@@ -1587,16 +2049,14 @@ return map[id]?.name || 'Unknown Team';
 }
 
 
-function renderBracket(
-data,
-admin=false
-){
+function renderBracket(data,admin=false){
 
 const {
 tournament,
 matches,
 teamMap
 }=data;
+
 
 if(!matches.length){
 
@@ -1610,18 +2070,18 @@ Bracket has not been generated yet.
 
 
 const sections=[
-  {
-    title:'🏆 Winners Bracket',
-    code:'W'
-  },
-  {
-    title:'🔥 Losers Bracket',
-    code:'L'
-  },
-  {
-    title:'🏆 Championship',
-    code:'F'
-  }
+{
+ title:'🏆 Winners Bracket',
+ code:'W'
+},
+{
+ title:'🔥 Losers Bracket',
+ code:'L'
+},
+{
+ title:'🏆 Championship',
+ code:'F'
+}
 ];
 
 
@@ -1652,6 +2112,7 @@ const sectionMatches =
 matches.filter(
 m=>m.bracket===section.code
 );
+
 
 if(!sectionMatches.length)
   continue;
@@ -1687,9 +2148,7 @@ html+=`
 <div class="round">
 
 <div class="roundName">
-${roundMatches[0]?.label
-  ?.split('•')[0]
-  || `Round ${round}`}
+${getRoundTitle(section.code,round,roundMatches)}
 </div>
 `;
 
@@ -1723,11 +2182,44 @@ return html;
 }
 
 
-function renderMatch(
-match,
-teamMap,
-admin
-){
+function getRoundTitle(code,round,matches){
+
+if(code==='F'){
+
+if(round===1)
+  return 'Grand Final';
+
+return 'Reset Final';
+
+}
+
+
+const first=matches[0];
+
+if(!first)
+  return `Round ${round}`;
+
+
+if(
+first.label.includes('Final') &&
+!first.label.includes('Semifinal')
+)
+  return first.label;
+
+
+if(code==='W')
+  return `Winners Round ${round}`;
+
+return `Losers Round ${round}`;
+
+}
+
+
+/* =====================================================
+   MATCH DISPLAY
+===================================================== */
+
+function renderMatch(match,teamMap,admin){
 
 const team1 =
 teamMap[match.team1_id];
@@ -1736,13 +2228,33 @@ const team2 =
 teamMap[match.team2_id];
 
 
-function row(team){
+const isByeMatch =
+match.completed &&
+match.winner_id &&
+!match.loser_id &&
+(
+!match.team1_id ||
+!match.team2_id
+);
+
+
+function row(team,slot){
 
 if(!team){
 
+if(isByeMatch){
+
 return `
 <div class="matchTeam">
-<span>Waiting...</span>
+<span class="bye">BYE</span>
+</div>
+`;
+
+}
+
+return `
+<div class="matchTeam">
+<span class="bye">Waiting...</span>
 </div>
 `;
 
@@ -1802,8 +2314,8 @@ return `
 ${escapeHtml(match.label || 'Match')}
 </div>
 
-${row(team1)}
-${row(team2)}
+${row(team1,1)}
+${row(team2,2)}
 
 </div>
 `;
@@ -1812,7 +2324,7 @@ ${row(team2)}
 
 
 /* =====================================================
-   LOAD ADMIN
+   ADMIN TOURNAMENT
 ===================================================== */
 
 async function loadAdminTournament(){
@@ -1820,17 +2332,32 @@ async function loadAdminTournament(){
 const id =
 document.getElementById('adminTournament').value;
 
+
 if(!id){
 
 document.getElementById('adminBracket').innerHTML='';
+document.getElementById('teamList').innerHTML='';
+document.getElementById('adminTournamentStatus').innerHTML='';
+
 return;
 
 }
 
+
 await loadTeams();
+
+
+try{
 
 const data =
 await getTournamentData(id);
+
+
+const sizeText =
+data.tournament.bracket_size
+? ` • ${data.tournament.bracket_size}-slot bracket`
+: '';
+
 
 document.getElementById(
 'adminTournamentStatus'
@@ -1839,15 +2366,28 @@ document.getElementById(
 <p>
 Status:
 <span class="status ${data.tournament.status}">
-${data.tournament.status.toUpperCase()}
+${String(data.tournament.status).toUpperCase()}
 </span>
+${sizeText}
 </p>
 `;
+
 
 document.getElementById(
 'adminBracket'
 ).innerHTML =
 renderBracket(data,true);
+
+}catch(error){
+
+console.error(error);
+
+document.getElementById(
+'adminBracket'
+).innerHTML =
+`<p class="muted">${escapeHtml(error.message)}</p>`;
+
+}
 
 }
 
@@ -1857,7 +2397,7 @@ loadAdminTournament;
 
 
 /* =====================================================
-   LOAD PUBLIC
+   PUBLIC TOURNAMENT
 ===================================================== */
 
 async function loadPublicTournament(){
@@ -1865,15 +2405,22 @@ async function loadPublicTournament(){
 const id =
 document.getElementById('publicTournament').value;
 
+
 if(!id){
 
 document.getElementById('publicBracket').innerHTML='';
+document.getElementById('publicStatus').innerHTML='';
+
 return;
 
 }
 
+
+try{
+
 const data =
 await getTournamentData(id);
+
 
 document.getElementById(
 'publicStatus'
@@ -1882,15 +2429,27 @@ document.getElementById(
 <p>
 Status:
 <span class="status ${data.tournament.status}">
-${data.tournament.status.toUpperCase()}
+${String(data.tournament.status).toUpperCase()}
 </span>
 </p>
 `;
+
 
 document.getElementById(
 'publicBracket'
 ).innerHTML =
 renderBracket(data,false);
+
+}catch(error){
+
+console.error(error);
+
+document.getElementById(
+'publicBracket'
+).innerHTML =
+`<p class="muted">${escapeHtml(error.message)}</p>`;
+
+}
 
 }
 
@@ -1900,18 +2459,42 @@ loadPublicTournament;
 
 
 /* =====================================================
-   REFRESH BOTH
+   REFRESH
 ===================================================== */
 
 async function refreshBrackets(){
 
-await loadAdminTournament();
-
 const adminId =
 document.getElementById('adminTournament').value;
 
+
+if(adminId)
+  await loadAdminTournament();
+
+
+await loadTournaments();
+
+
+if(adminId){
+
+const adminSelect =
+document.getElementById('adminTournament');
+
+if(
+[...adminSelect.options]
+.some(o=>o.value===adminId)
+){
+
+adminSelect.value=adminId;
+
+}
+
+}
+
+
 const publicSelect =
 document.getElementById('publicTournament');
+
 
 if(
 adminId &&
@@ -1934,7 +2517,7 @@ await loadPublicTournament();
 
 function escapeHtml(value){
 
-return String(value)
+return String(value ?? '')
 .replaceAll('&','&amp;')
 .replaceAll('<','&lt;')
 .replaceAll('>','&gt;')
@@ -1955,6 +2538,7 @@ data:{session}
 } =
 await sb.auth.getSession();
 
+
 if(session){
 
 adminLogin.style.display='none';
@@ -1971,7 +2555,7 @@ adminPanel.style.display='none';
 
 
 /* =====================================================
-   AUTO REFRESH PUBLIC BRACKET
+   PUBLIC AUTO REFRESH
 ===================================================== */
 
 setInterval(
@@ -1980,9 +2564,8 @@ async ()=>{
 const id =
 document.getElementById('publicTournament').value;
 
-if(id){
+if(id)
   await loadPublicTournament();
-}
 
 },
 5000
@@ -1993,9 +2576,14 @@ if(id){
    START
 ===================================================== */
 
-checkLogin();
+async function start(){
 
-loadTournaments();
+await checkLogin();
+await loadTournaments();
+
+}
+
+start();
 
 </script>
 

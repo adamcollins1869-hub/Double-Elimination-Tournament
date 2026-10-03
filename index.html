@@ -1,784 +1,2003 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta charset="UTF-8">
+<title>Double Elimination Tournament</title>
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <title>Double Elimination Tournament</title>
+<style>
+:root{
+  --bg:#111827;
+  --panel:#1f2937;
+  --panel2:#263244;
+  --border:#3d4b60;
+  --text:#f9fafb;
+  --muted:#aeb9c8;
+  --gold:#f59e0b;
+  --gold2:#d97706;
+  --blue:#2563eb;
+  --green:#16a34a;
+  --red:#dc2626;
+  --purple:#7c3aed;
+}
 
-  <style>
+*{box-sizing:border-box}
 
-    :root{
-      --bg:#111827;
-      --panel:#1f2937;
-      --panel2:#263244;
-      --border:#3d4b60;
-      --text:#f9fafb;
-      --muted:#aeb9c8;
-      --accent:#f59e0b;
-      --accent2:#d97706;
-      --blue:#2563eb;
-      --green:#16a34a;
-      --red:#dc2626;
-    }
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
 
-    *{
-      box-sizing:border-box;
-    }
+header{
+  padding:24px 20px;
+  text-align:center;
+  background:linear-gradient(135deg,#172033,#263a5c);
+  border-bottom:4px solid var(--gold);
+}
 
-    body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
+header h1{
+  margin:0;
+  font-size:2rem;
+}
 
-    header{
-      padding:24px 20px;
-      text-align:center;
-      background:
-        linear-gradient(
-          135deg,
-          #172033,
-          #263a5c
-        );
-      border-bottom:
-        4px solid var(--accent);
-    }
+header p{
+  margin:8px 0 0;
+  color:var(--muted);
+}
 
-    header h1{
-      margin:0;
-      font-size:2rem;
-    }
+main{
+  width:min(96%,1400px);
+  margin:26px auto;
+}
 
-    header p{
-      margin:8px 0 0;
-      color:var(--muted);
-    }
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
 
-    main{
-      width:min(94%,1100px);
-      margin:28px auto;
-    }
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:18px;
+}
 
-    .tabs{
-      display:flex;
-      gap:10px;
-      margin-bottom:18px;
-    }
+button{
+  border:0;
+  border-radius:9px;
+  padding:11px 16px;
+  font-weight:700;
+  font-size:.95rem;
+  cursor:pointer;
+}
 
-    button{
-      border:0;
-      border-radius:10px;
-      padding:12px 18px;
-      font-size:1rem;
-      font-weight:700;
-      cursor:pointer;
-    }
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
 
-    .primary{
-      background:var(--accent);
-      color:#1f2937;
-    }
+.primary{background:var(--gold);color:#1f2937}
+.secondary{background:var(--blue);color:white}
+.purple{background:var(--purple);color:white}
+.danger{background:var(--red);color:white}
+.success{background:var(--green);color:white}
 
-    .secondary{
-      background:var(--blue);
-      color:white;
-    }
+.small{
+  padding:7px 10px;
+  font-size:.82rem;
+}
 
-    .danger{
-      background:var(--red);
-      color:white;
-    }
+input,select{
+  width:100%;
+  padding:12px;
+  margin:7px 0 16px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-size:1rem;
+}
 
-    .card{
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:22px;
-      box-shadow:
-        0 8px 24px rgba(0,0,0,.25);
-    }
+label{
+  font-weight:700;
+}
 
-    h2{
-      margin-top:0;
-    }
+.muted{
+  color:var(--muted);
+  line-height:1.5;
+}
 
-    h3{
-      margin-top:0;
-    }
+.section{
+  border-top:1px solid var(--border);
+  margin-top:25px;
+  padding-top:22px;
+}
 
-    .muted{
-      color:var(--muted);
-      line-height:1.5;
-    }
+.message{
+  display:none;
+  padding:12px;
+  border-radius:8px;
+  margin-top:12px;
+}
 
-    .section{
-      margin-top:26px;
-      padding-top:22px;
-      border-top:1px solid var(--border);
-    }
+.message.show{display:block}
+.message.ok{background:#173c27;border:1px solid var(--green)}
+.message.error{background:#4a1f24;border:1px solid var(--red)}
 
-    label{
-      display:block;
-      margin-bottom:8px;
-      font-weight:700;
-    }
+.row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
 
-    input,
-    select{
-      width:100%;
-      padding:13px;
-      margin-bottom:16px;
-      border-radius:9px;
-      border:1px solid var(--border);
-      font-size:1rem;
-    }
+.row button{
+  flex:1;
+  min-width:130px;
+}
 
-    .bracketArea{
-      overflow-x:auto;
-      margin-top:20px;
-      padding-bottom:12px;
-    }
+.teamRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
 
-    .bracket{
-      min-width:850px;
-      display:flex;
-      gap:28px;
-      align-items:flex-start;
-    }
+.teamButtons{
+  display:flex;
+  gap:6px;
+}
 
-    .round{
-      min-width:220px;
-    }
+.bracketTitle{
+  margin-top:32px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--gold);
+}
 
-    .roundTitle{
-      text-align:center;
-      font-weight:700;
-      margin-bottom:14px;
-      color:var(--accent);
-    }
+.bracketScroller{
+  overflow-x:auto;
+  padding-bottom:20px;
+}
 
-    .match{
-      background:var(--panel2);
-      border:1px solid var(--border);
-      border-radius:10px;
-      margin-bottom:18px;
-      overflow:hidden;
-    }
+.bracket{
+  display:flex;
+  gap:26px;
+  min-width:max-content;
+  align-items:flex-start;
+}
 
-    .team{
-      padding:11px 12px;
-      border-bottom:1px solid var(--border);
-    }
+.round{
+  width:235px;
+}
 
-    .team:last-child{
-      border-bottom:0;
-    }
+.roundName{
+  color:var(--gold);
+  font-weight:700;
+  text-align:center;
+  margin:12px 0;
+}
 
-    .winner{
-      background:#17452a;
-      font-weight:700;
-    }
+.match{
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:15px;
+  overflow:hidden;
+}
 
-    .bracketHeading{
-      margin-top:30px;
-      padding-bottom:8px;
-      border-bottom:2px solid var(--accent);
-    }
+.matchLabel{
+  font-size:.72rem;
+  color:var(--muted);
+  padding:6px 10px;
+  border-bottom:1px solid var(--border);
+}
 
-    .champion{
-      margin-top:30px;
-      padding:22px;
-      text-align:center;
-      background:
-        linear-gradient(
-          135deg,
-          #7c4a03,
-          #b66a05
-        );
-      border-radius:14px;
-    }
+.matchTeam{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:7px;
+  padding:10px;
+  border-bottom:1px solid var(--border);
+}
 
-    .champion strong{
-      display:block;
-      margin-top:8px;
-      font-size:1.5rem;
-    }
+.matchTeam:last-child{
+  border-bottom:0;
+}
 
-    @media(max-width:600px){
+.matchTeam.winner{
+  background:#17452a;
+  font-weight:700;
+}
 
-      header h1{
-        font-size:1.55rem;
-      }
+.matchTeam.loser{
+  opacity:.6;
+}
 
-      main{
-        width:96%;
-      }
+.winButton{
+  background:var(--green);
+  color:white;
+  padding:5px 8px;
+  font-size:.72rem;
+}
 
-      .card{
-        padding:16px;
-      }
+.champion{
+  text-align:center;
+  margin:28px 0 8px;
+  padding:24px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#7c4a03,#b66a05);
+}
 
-    }
+.champion strong{
+  display:block;
+  font-size:1.7rem;
+  margin-top:8px;
+}
 
-  </style>
+.status{
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:.8rem;
+  font-weight:700;
+}
 
+.setup{background:#4b5563}
+.active{background:#166534}
+.complete{background:#92400e}
+
+@media(max-width:600px){
+  header h1{font-size:1.5rem}
+  .card{padding:15px}
+  .teamRow{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+</style>
 </head>
-
 
 <body>
 
-
 <header>
-
-  <h1>
-    🏆 Double Elimination Tournament
-  </h1>
-
-  <p>
-    Winners Bracket • Losers Bracket • Championship
-  </p>
-
+  <h1>🏆 Double Elimination Tournament</h1>
+  <p>Two losses and you're out.</p>
 </header>
-
 
 <main>
 
+<div class="tabs" id="tabs">
+  <button id="bracketTab" class="primary">Bracket</button>
+  <button id="adminTab" class="secondary">Admin</button>
+</div>
 
-  <div class="tabs">
+<!-- PUBLIC -->
+<section id="bracketView" class="card">
 
-    <button
-      id="bracketTab"
-      class="primary"
-      type="button"
-    >
-      Tournament Bracket
+  <h2>🏆 Tournament Bracket</h2>
+
+  <label>Tournament</label>
+  <select id="publicTournament">
+    <option value="">Choose a tournament...</option>
+  </select>
+
+  <div id="publicStatus"></div>
+  <div id="publicBracket"></div>
+
+</section>
+
+<!-- ADMIN -->
+<section id="adminView" class="card" style="display:none">
+
+<div id="adminLogin">
+
+  <h2>Admin Login</h2>
+
+  <form id="loginForm">
+
+    <label>Email</label>
+    <input id="email" type="email" required>
+
+    <label>Password</label>
+    <input id="password" type="password" required>
+
+    <button class="primary" type="submit">
+      Log In
     </button>
 
-    <button
-      id="adminTab"
-      class="secondary"
-      type="button"
-    >
-      Admin
-    </button>
+  </form>
 
-  </div>
+  <div id="loginMessage" class="message"></div>
 
+</div>
 
 
-  <!-- PUBLIC BRACKET -->
+<div id="adminPanel" style="display:none">
 
-  <section
-    id="bracketView"
-    class="card"
-  >
+<h2>Tournament Admin</h2>
 
-    <h2>
-      Tournament Bracket
-    </h2>
+<div class="section">
 
-    <p class="muted">
-      Tournament results and matchups will
-      appear here as games are completed.
-    </p>
+<h3>Create Tournament</h3>
 
+<form id="createTournamentForm">
 
-    <label for="publicTournament">
-      Tournament
-    </label>
+<label>Tournament Name</label>
 
-    <select id="publicTournament">
+<input
+  id="tournamentName"
+  required
+  placeholder="Tournament name"
+>
 
-      <option>
-        Sample Tournament
-      </option>
+<button class="primary">
+  Create Tournament
+</button>
 
-    </select>
+</form>
 
+<div id="tournamentMessage" class="message"></div>
 
+</div>
 
-    <h2 class="bracketHeading">
-      🏆 Winners Bracket
-    </h2>
 
+<div class="section">
 
-    <div class="bracketArea">
+<h3>Manage Tournament</h3>
 
-      <div class="bracket">
+<select id="adminTournament">
+<option value="">Choose a tournament...</option>
+</select>
 
+<div id="adminTournamentStatus"></div>
 
-        <div class="round">
+</div>
 
-          <div class="roundTitle">
-            Round 1
-          </div>
 
-          <div class="match">
+<div class="section">
 
-            <div class="team">
-              Team 1
-            </div>
+<h3>Teams</h3>
 
-            <div class="team">
-              Team 8
-            </div>
+<p class="muted">
+Add between 2 and 10 teams. Teams will be randomly
+drawn when the bracket is generated.
+</p>
 
-          </div>
+<form id="addTeamForm">
 
+<input
+  id="teamName"
+  placeholder="Team name"
+  required
+>
 
-          <div class="match">
+<button class="primary">
+  Add Team
+</button>
 
-            <div class="team">
-              Team 4
-            </div>
+</form>
 
-            <div class="team">
-              Team 5
-            </div>
+<div id="teamMessage" class="message"></div>
 
-          </div>
+<div id="teamList"></div>
 
+</div>
 
-          <div class="match">
 
-            <div class="team">
-              Team 2
-            </div>
+<div class="section">
 
-            <div class="team">
-              Team 7
-            </div>
+<h3>Bracket Controls</h3>
 
-          </div>
+<div class="row">
 
+<button
+  id="generateBtn"
+  class="success"
+>
+Generate Bracket
+</button>
 
-          <div class="match">
+<button
+  id="resetBtn"
+  class="purple"
+>
+Reset Bracket
+</button>
 
-            <div class="team">
-              Team 3
-            </div>
+<button
+  id="deleteTournamentBtn"
+  class="danger"
+>
+Delete Tournament
+</button>
 
-            <div class="team">
-              Team 6
-            </div>
+</div>
 
-          </div>
+</div>
 
-        </div>
 
+<div class="section">
 
+<h3>Admin Bracket</h3>
 
-        <div class="round">
+<p class="muted">
+Click <strong>Winner</strong> beside the team that won.
+The bracket will automatically advance both teams.
+</p>
 
-          <div class="roundTitle">
-            Semifinals
-          </div>
+<div id="adminBracket"></div>
 
-          <div class="match">
+</div>
 
-            <div class="team">
-              Winner Game 1
-            </div>
 
-            <div class="team">
-              Winner Game 2
-            </div>
+<div class="section">
 
-          </div>
+<button
+  id="logoutBtn"
+  class="secondary"
+  style="width:100%"
+>
+Log Out
+</button>
 
+</div>
 
-          <div class="match">
+</div>
 
-            <div class="team">
-              Winner Game 3
-            </div>
-
-            <div class="team">
-              Winner Game 4
-            </div>
-
-          </div>
-
-        </div>
-
-
-
-        <div class="round">
-
-          <div class="roundTitle">
-            Winners Final
-          </div>
-
-          <div class="match">
-
-            <div class="team">
-              Semifinal Winner
-            </div>
-
-            <div class="team">
-              Semifinal Winner
-            </div>
-
-          </div>
-
-        </div>
-
-
-      </div>
-
-    </div>
-
-
-
-    <h2 class="bracketHeading">
-      🔥 Losers Bracket
-    </h2>
-
-
-    <div class="bracketArea">
-
-      <div class="bracket">
-
-
-        <div class="round">
-
-          <div class="roundTitle">
-            Losers Round 1
-          </div>
-
-          <div class="match">
-
-            <div class="team">
-              Waiting
-            </div>
-
-            <div class="team">
-              Waiting
-            </div>
-
-          </div>
-
-
-          <div class="match">
-
-            <div class="team">
-              Waiting
-            </div>
-
-            <div class="team">
-              Waiting
-            </div>
-
-          </div>
-
-        </div>
-
-
-
-        <div class="round">
-
-          <div class="roundTitle">
-            Losers Round 2
-          </div>
-
-          <div class="match">
-
-            <div class="team">
-              Waiting
-            </div>
-
-            <div class="team">
-              Waiting
-            </div>
-
-          </div>
-
-
-          <div class="match">
-
-            <div class="team">
-              Waiting
-            </div>
-
-            <div class="team">
-              Waiting
-            </div>
-
-          </div>
-
-        </div>
-
-
-
-        <div class="round">
-
-          <div class="roundTitle">
-            Losers Final
-          </div>
-
-          <div class="match">
-
-            <div class="team">
-              Waiting
-            </div>
-
-            <div class="team">
-              Waiting
-            </div>
-
-          </div>
-
-        </div>
-
-
-      </div>
-
-    </div>
-
-
-
-    <h2 class="bracketHeading">
-      🏆 Championship
-    </h2>
-
-
-    <div class="bracketArea">
-
-      <div
-        class="match"
-        style="max-width:320px;"
-      >
-
-        <div class="team">
-          Winners Bracket Champion
-        </div>
-
-        <div class="team">
-          Losers Bracket Champion
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <div
-      class="champion"
-      style="display:none;"
-      id="championBox"
-    >
-
-      🏆 TOURNAMENT CHAMPION
-
-      <strong id="championName">
-        Team Name
-      </strong>
-
-    </div>
-
-
-  </section>
-
-
-
-  <!-- ADMIN -->
-
-  <section
-    id="adminView"
-    class="card"
-    style="display:none;"
-  >
-
-    <h2>
-      Tournament Admin
-    </h2>
-
-    <p class="muted">
-      This is where you will create tournaments,
-      enter teams, generate brackets, and select
-      game winners.
-    </p>
-
-
-
-    <div class="section">
-
-      <h3>
-        Create Tournament
-      </h3>
-
-      <label for="tournamentName">
-        Tournament Name
-      </label>
-
-      <input
-        id="tournamentName"
-        type="text"
-        placeholder="Example: Fall Basketball Tournament"
-      >
-
-
-      <button
-        class="primary"
-        type="button"
-      >
-        Create Tournament
-      </button>
-
-    </div>
-
-
-
-    <div class="section">
-
-      <h3>
-        Manage Tournament
-      </h3>
-
-      <label for="adminTournament">
-        Select Tournament
-      </label>
-
-      <select id="adminTournament">
-
-        <option>
-          Sample Tournament
-        </option>
-
-      </select>
-
-    </div>
-
-
-
-    <div class="section">
-
-      <h3>
-        Teams
-      </h3>
-
-      <label for="teamName">
-        Team Name
-      </label>
-
-      <input
-        id="teamName"
-        type="text"
-        placeholder="Enter team name"
-      >
-
-
-      <button
-        class="primary"
-        type="button"
-      >
-        Add Team
-      </button>
-
-    </div>
-
-
-
-    <div class="section">
-
-      <h3>
-        Generate Bracket
-      </h3>
-
-      <p class="muted">
-        Once all teams are entered, this will
-        create the Winners Bracket, Losers
-        Bracket, and Championship automatically.
-      </p>
-
-      <button
-        class="secondary"
-        type="button"
-      >
-        Generate Double-Elimination Bracket
-      </button>
-
-    </div>
-
-
-  </section>
-
+</section>
 
 </main>
 
-
-
 <script>
 
+/* =====================================================
+   SUPABASE
+===================================================== */
 
-const bracketTab =
-  document.getElementById(
-    'bracketTab'
-  );
+const SUPABASE_URL =
+'https://hvczxuhpbilmntmiysym.supabase.co';
+
+const SUPABASE_KEY =
+'sb_publishable_sgnSOMdSjmaps73b5PBMWQ_esSO0yw6';
+
+const sb =
+supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 
-const adminTab =
-  document.getElementById(
-    'adminTab'
-  );
-
+/* =====================================================
+   BASIC UI
+===================================================== */
 
 const bracketView =
-  document.getElementById(
-    'bracketView'
-  );
-
+document.getElementById('bracketView');
 
 const adminView =
-  document.getElementById(
-    'adminView'
-  );
+document.getElementById('adminView');
+
+const adminLogin =
+document.getElementById('adminLogin');
+
+const adminPanel =
+document.getElementById('adminPanel');
 
 
+document.getElementById('bracketTab').onclick = () => {
+  bracketView.style.display='block';
+  adminView.style.display='none';
+};
 
-function showBracket(){
+document.getElementById('adminTab').onclick = () => {
+  bracketView.style.display='none';
+  adminView.style.display='block';
+};
 
-  bracketView.style.display =
-    'block';
 
-  adminView.style.display =
-    'none';
+/* =====================================================
+   LOGIN
+===================================================== */
+
+document.getElementById('loginForm').onsubmit =
+async e => {
+
+e.preventDefault();
+
+const email =
+document.getElementById('email').value.trim();
+
+const password =
+document.getElementById('password').value;
+
+const {error} =
+await sb.auth.signInWithPassword({
+  email,
+  password
+});
+
+const box =
+document.getElementById('loginMessage');
+
+if(error){
+  box.textContent=error.message;
+  box.className='message error show';
+  return;
+}
+
+adminLogin.style.display='none';
+adminPanel.style.display='block';
+
+await loadTournaments();
+
+};
+
+
+document.getElementById('logoutBtn').onclick =
+async () => {
+
+await sb.auth.signOut();
+
+adminPanel.style.display='none';
+adminLogin.style.display='block';
+
+};
+
+
+/* =====================================================
+   TOURNAMENTS
+===================================================== */
+
+async function loadTournaments(){
+
+const {data,error} =
+await sb
+.from('tournaments')
+.select('*')
+.order('created_at',{ascending:false});
+
+if(error){
+  console.error(error);
+  return;
+}
+
+const publicSelect =
+document.getElementById('publicTournament');
+
+const adminSelect =
+document.getElementById('adminTournament');
+
+const oldPublic = publicSelect.value;
+const oldAdmin = adminSelect.value;
+
+publicSelect.innerHTML =
+'<option value="">Choose a tournament...</option>';
+
+adminSelect.innerHTML =
+'<option value="">Choose a tournament...</option>';
+
+data.forEach(t => {
+
+const a=document.createElement('option');
+a.value=t.id;
+a.textContent=t.name;
+
+const b=a.cloneNode(true);
+
+publicSelect.appendChild(a);
+adminSelect.appendChild(b);
+
+});
+
+if(data.some(t=>t.id===oldPublic))
+  publicSelect.value=oldPublic;
+
+if(data.some(t=>t.id===oldAdmin))
+  adminSelect.value=oldAdmin;
 
 }
 
 
+document.getElementById('createTournamentForm').onsubmit =
+async e => {
 
-function showAdmin(){
+e.preventDefault();
 
-  bracketView.style.display =
-    'none';
+const name =
+document.getElementById('tournamentName').value.trim();
 
-  adminView.style.display =
-    'block';
+const {data,error} =
+await sb
+.from('tournaments')
+.insert({name})
+.select()
+.single();
+
+const box =
+document.getElementById('tournamentMessage');
+
+if(error){
+  box.textContent=error.message;
+  box.className='message error show';
+  return;
+}
+
+box.textContent='Tournament created.';
+box.className='message ok show';
+
+e.target.reset();
+
+await loadTournaments();
+
+document.getElementById('adminTournament').value=data.id;
+
+await loadAdminTournament();
+
+};
+
+
+/* =====================================================
+   TEAMS
+===================================================== */
+
+document.getElementById('addTeamForm').onsubmit =
+async e => {
+
+e.preventDefault();
+
+const tournamentId =
+document.getElementById('adminTournament').value;
+
+if(!tournamentId){
+  alert('Choose a tournament first.');
+  return;
+}
+
+const name =
+document.getElementById('teamName').value.trim();
+
+const {count} =
+await sb
+.from('teams')
+.select('*',{count:'exact',head:true})
+.eq('tournament_id',tournamentId);
+
+if(count >= 10){
+  alert('Maximum of 10 teams.');
+  return;
+}
+
+const {error} =
+await sb
+.from('teams')
+.insert({
+  tournament_id:tournamentId,
+  name
+});
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+e.target.reset();
+
+await loadTeams();
+await loadTournaments();
+
+};
+
+
+async function loadTeams(){
+
+const tournamentId =
+document.getElementById('adminTournament').value;
+
+const box =
+document.getElementById('teamList');
+
+if(!tournamentId){
+  box.innerHTML='';
+  return;
+}
+
+const {data,error} =
+await sb
+.from('teams')
+.select('*')
+.eq('tournament_id',tournamentId)
+.order('created_at');
+
+if(error){
+  box.textContent=error.message;
+  return;
+}
+
+box.innerHTML='';
+
+data.forEach(team=>{
+
+const row=document.createElement('div');
+row.className='teamRow';
+
+const name=document.createElement('span');
+
+name.textContent =
+team.name +
+(team.eliminated ? ' — ELIMINATED' : '') +
+` (${team.losses} loss${team.losses===1?'':'es'})`;
+
+const buttons=document.createElement('div');
+buttons.className='teamButtons';
+
+const edit=document.createElement('button');
+edit.className='secondary small';
+edit.textContent='Edit';
+edit.onclick=()=>editTeam(team);
+
+const del=document.createElement('button');
+del.className='danger small';
+del.textContent='Delete';
+del.onclick=()=>deleteTeam(team);
+
+buttons.append(edit,del);
+
+row.append(name,buttons);
+
+box.appendChild(row);
+
+});
 
 }
 
 
+async function editTeam(team){
 
-bracketTab.onclick =
-  showBracket;
+const name =
+prompt('Team name:',team.name);
+
+if(name===null || !name.trim())
+  return;
+
+const {error} =
+await sb
+.from('teams')
+.update({name:name.trim()})
+.eq('id',team.id);
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+await loadTeams();
+await refreshBrackets();
+
+}
 
 
-adminTab.onclick =
-  showAdmin;
+async function deleteTeam(team){
 
+if(!confirm(`Delete ${team.name}?`))
+  return;
+
+const {error} =
+await sb
+.from('teams')
+.delete()
+.eq('id',team.id);
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+await loadTeams();
+
+}
+
+
+/* =====================================================
+   RANDOM HELPERS
+===================================================== */
+
+function shuffle(array){
+
+const a=[...array];
+
+for(let i=a.length-1;i>0;i--){
+
+const j=Math.floor(Math.random()*(i+1));
+
+[a[i],a[j]]=[a[j],a[i]];
+
+}
+
+return a;
+
+}
+
+
+/* =====================================================
+   BRACKET CREATION
+===================================================== */
+
+async function generateBracket(){
+
+const tournamentId =
+document.getElementById('adminTournament').value;
+
+if(!tournamentId){
+  alert('Choose a tournament first.');
+  return;
+}
+
+const {data:teams,error} =
+await sb
+.from('teams')
+.select('*')
+.eq('tournament_id',tournamentId);
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+if(teams.length < 2){
+  alert('Add at least 2 teams.');
+  return;
+}
+
+if(teams.length > 10){
+  alert('This site supports up to 10 teams.');
+  return;
+}
+
+const {count} =
+await sb
+.from('matches')
+.select('*',{count:'exact',head:true})
+.eq('tournament_id',tournamentId);
+
+if(count>0){
+
+if(!confirm(
+  'A bracket already exists. Reset it and generate a new random draw?'
+)){
+  return;
+}
+
+await sb.rpc(
+  'reset_tournament_bracket',
+  {p_tournament_id:tournamentId}
+);
+
+}
+
+/*
+  We use a 16-position Winners Bracket.
+
+  The 10 or fewer teams are shuffled first.
+  Teams are then distributed across opening
+  positions so byes advance automatically.
+*/
+
+const shuffled=shuffle(teams);
+
+const slots=new Array(16).fill(null);
+
+/*
+  Spread real teams across the 16 slots.
+  This prevents all of the byes from
+  clustering on one side.
+*/
+
+const slotOrder=[
+  0,8,4,12,2,10,6,14,
+  1,9
+];
+
+shuffled.forEach((team,index)=>{
+  slots[slotOrder[index]]=team.id;
+});
+
+
+const matches=[];
+
+
+/* WINNERS ROUND 1 */
+
+for(let i=0;i<8;i++){
+
+matches.push({
+  key:`W1-${i+1}`,
+  bracket:'W',
+  round_number:1,
+  match_number:i+1,
+  label:`Winners Round 1 • Game ${i+1}`,
+  team1_id:slots[i*2],
+  team2_id:slots[i*2+1],
+  display_order:i+1
+});
+
+}
+
+
+/* WINNERS ROUND 2 */
+
+for(let i=0;i<4;i++){
+
+matches.push({
+  key:`W2-${i+1}`,
+  bracket:'W',
+  round_number:2,
+  match_number:i+1,
+  label:`Winners Round 2 • Game ${i+1}`,
+  display_order:20+i
+});
+
+}
+
+
+/* WINNERS ROUND 3 */
+
+for(let i=0;i<2;i++){
+
+matches.push({
+  key:`W3-${i+1}`,
+  bracket:'W',
+  round_number:3,
+  match_number:i+1,
+  label:`Winners Semifinal ${i+1}`,
+  display_order:30+i
+});
+
+}
+
+
+/* WINNERS FINAL */
+
+matches.push({
+  key:'W4-1',
+  bracket:'W',
+  round_number:4,
+  match_number:1,
+  label:'Winners Bracket Final',
+  display_order:40
+});
+
+
+/*
+  LOSERS BRACKET
+
+  16-slot double elimination requires
+  six losers-bracket rounds.
+*/
+
+for(let i=0;i<4;i++){
+
+matches.push({
+  key:`L1-${i+1}`,
+  bracket:'L',
+  round_number:1,
+  match_number:i+1,
+  label:`Losers Round 1 • Game ${i+1}`,
+  display_order:100+i
+});
+
+}
+
+for(let i=0;i<4;i++){
+
+matches.push({
+  key:`L2-${i+1}`,
+  bracket:'L',
+  round_number:2,
+  match_number:i+1,
+  label:`Losers Round 2 • Game ${i+1}`,
+  display_order:110+i
+});
+
+}
+
+for(let i=0;i<2;i++){
+
+matches.push({
+  key:`L3-${i+1}`,
+  bracket:'L',
+  round_number:3,
+  match_number:i+1,
+  label:`Losers Round 3 • Game ${i+1}`,
+  display_order:120+i
+});
+
+}
+
+for(let i=0;i<2;i++){
+
+matches.push({
+  key:`L4-${i+1}`,
+  bracket:'L',
+  round_number:4,
+  match_number:i+1,
+  label:`Losers Round 4 • Game ${i+1}`,
+  display_order:130+i
+});
+
+}
+
+matches.push({
+  key:'L5-1',
+  bracket:'L',
+  round_number:5,
+  match_number:1,
+  label:'Losers Semifinal',
+  display_order:140
+});
+
+matches.push({
+  key:'L6-1',
+  bracket:'L',
+  round_number:6,
+  match_number:1,
+  label:'Losers Bracket Final',
+  display_order:150
+});
+
+
+/* GRAND FINALS */
+
+matches.push({
+  key:'F1-1',
+  bracket:'F',
+  round_number:1,
+  match_number:1,
+  label:'Grand Final',
+  display_order:200
+});
+
+matches.push({
+  key:'F2-1',
+  bracket:'F',
+  round_number:2,
+  match_number:1,
+  label:'Grand Final Reset',
+  display_order:210,
+  active:false,
+  is_reset_final:true
+});
+
+
+const inserts =
+matches.map(m=>({
+  tournament_id:tournamentId,
+  bracket:m.bracket,
+  round_number:m.round_number,
+  match_number:m.match_number,
+  label:m.label,
+  team1_id:m.team1_id || null,
+  team2_id:m.team2_id || null,
+  display_order:m.display_order,
+  active:m.active===false ? false:true,
+  is_reset_final:m.is_reset_final || false,
+  notes:m.key
+}));
+
+
+const {data:created,error:createError} =
+await sb
+.from('matches')
+.insert(inserts)
+.select();
+
+if(createError){
+  alert(createError.message);
+  return;
+}
+
+
+const map={};
+
+created.forEach(m=>{
+  map[m.notes]=m;
+});
+
+
+const links={
+
+'W1-1':['W2-1',1,'L1-1',1],
+'W1-2':['W2-1',2,'L1-1',2],
+
+'W1-3':['W2-2',1,'L1-2',1],
+'W1-4':['W2-2',2,'L1-2',2],
+
+'W1-5':['W2-3',1,'L1-3',1],
+'W1-6':['W2-3',2,'L1-3',2],
+
+'W1-7':['W2-4',1,'L1-4',1],
+'W1-8':['W2-4',2,'L1-4',2],
+
+
+'W2-1':['W3-1',1,'L2-1',2],
+'W2-2':['W3-1',2,'L2-2',2],
+
+'W2-3':['W3-2',1,'L2-3',2],
+'W2-4':['W3-2',2,'L2-4',2],
+
+
+'W3-1':['W4-1',1,'L4-1',2],
+'W3-2':['W4-1',2,'L4-2',2],
+
+
+'W4-1':['F1-1',1,'L6-1',2],
+
+
+'L1-1':['L2-1',1,null,null],
+'L1-2':['L2-2',1,null,null],
+'L1-3':['L2-3',1,null,null],
+'L1-4':['L2-4',1,null,null],
+
+
+'L2-1':['L3-1',1,null,null],
+'L2-2':['L3-1',2,null,null],
+
+'L2-3':['L3-2',1,null,null],
+'L2-4':['L3-2',2,null,null],
+
+
+'L3-1':['L4-1',1,null,null],
+'L3-2':['L4-2',1,null,null],
+
+
+'L4-1':['L5-1',1,null,null],
+'L4-2':['L5-1',2,null,null],
+
+
+'L5-1':['L6-1',1,null,null],
+
+
+'L6-1':['F1-1',2,null,null]
+
+};
+
+
+for(const [key,value] of Object.entries(links)){
+
+const match=map[key];
+
+const winnerNext =
+value[0] ? map[value[0]] : null;
+
+const loserNext =
+value[2] ? map[value[2]] : null;
+
+await sb
+.from('matches')
+.update({
+
+winner_next_match_id:
+winnerNext?.id || null,
+
+winner_next_slot:
+value[1] || null,
+
+loser_next_match_id:
+loserNext?.id || null,
+
+loser_next_slot:
+value[3] || null
+
+})
+.eq('id',match.id);
+
+}
+
+
+await sb
+.from('tournaments')
+.update({
+  status:'active',
+  bracket_size:16,
+  champion_team_id:null
+})
+.eq('id',tournamentId);
+
+
+/*
+  Automatically advance opening byes.
+*/
+
+await processByes(tournamentId);
+
+await loadAdminTournament();
+await loadPublicTournament();
+
+alert('Random double-elimination bracket generated.');
+
+}
+
+
+document.getElementById('generateBtn').onclick =
+generateBracket;
+
+
+/* =====================================================
+   BYES
+===================================================== */
+
+async function processByes(tournamentId){
+
+let changed=true;
+
+while(changed){
+
+changed=false;
+
+const {data:matches} =
+await sb
+.from('matches')
+.select('*')
+.eq('tournament_id',tournamentId)
+.eq('active',true)
+.order('display_order');
+
+for(const match of matches){
+
+if(match.completed)
+  continue;
+
+const one =
+!!match.team1_id;
+
+const two =
+!!match.team2_id;
+
+
+/*
+  A bye is only automatically advanced
+  when the other input to the match can
+  no longer be supplied by an earlier match.
+*/
+
+if(one !== two){
+
+const missingSlot =
+one ? 2 : 1;
+
+const {data:feeders} =
+await sb
+.from('matches')
+.select('id,completed')
+.eq('tournament_id',tournamentId)
+.or(
+  `and(winner_next_match_id.eq.${match.id},winner_next_slot.eq.${missingSlot}),and(loser_next_match_id.eq.${match.id},loser_next_slot.eq.${missingSlot})`
+);
+
+const waiting =
+feeders &&
+feeders.some(f=>!f.completed);
+
+if(!waiting){
+
+const winner =
+one ? match.team1_id : match.team2_id;
+
+await advanceBye(
+  match,
+  winner
+);
+
+changed=true;
+
+}
+
+}
+
+}
+
+}
+
+}
+
+
+async function advanceBye(match,winnerId){
+
+await sb
+.from('matches')
+.update({
+  winner_id:winnerId,
+  loser_id:null,
+  completed:true
+})
+.eq('id',match.id);
+
+
+if(match.winner_next_match_id){
+
+const field =
+match.winner_next_slot===1
+? 'team1_id'
+: 'team2_id';
+
+await sb
+.from('matches')
+.update({
+  [field]:winnerId
+})
+.eq(
+  'id',
+  match.winner_next_match_id
+);
+
+}
+
+}
+
+
+/* =====================================================
+   RECORD WINNER
+===================================================== */
+
+async function chooseWinner(
+matchId,
+teamId
+){
+
+if(!confirm('Record this team as the winner?'))
+  return;
+
+const {error} =
+await sb.rpc(
+  'record_match_winner',
+  {
+    p_match_id:matchId,
+    p_winner_id:teamId
+  }
+);
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+const tournamentId =
+document.getElementById('adminTournament').value;
+
+await processByes(tournamentId);
+
+await handleFinals(tournamentId);
+
+await loadTeams();
+await refreshBrackets();
+
+}
+
+
+/* =====================================================
+   GRAND FINAL
+===================================================== */
+
+async function handleFinals(tournamentId){
+
+const {data:finals} =
+await sb
+.from('matches')
+.select('*')
+.eq('tournament_id',tournamentId)
+.eq('bracket','F')
+.order('round_number');
+
+const first =
+finals.find(f=>f.round_number===1);
+
+const reset =
+finals.find(f=>f.round_number===2);
+
+if(!first || !first.completed)
+  return;
+
+
+/*
+  team1 enters the Grand Final undefeated.
+  team2 comes from the losers bracket.
+
+  If team1 wins, tournament is over.
+  If team2 wins, both now have one loss,
+  so the reset final becomes active.
+*/
+
+if(first.winner_id===first.team1_id){
+
+await sb.rpc(
+  'set_tournament_champion',
+  {
+    p_tournament_id:tournamentId,
+    p_team_id:first.winner_id
+  }
+);
+
+return;
+
+}
+
+
+if(first.winner_id===first.team2_id){
+
+if(!reset.active){
+
+await sb
+.from('matches')
+.update({
+  active:true,
+  team1_id:first.team1_id,
+  team2_id:first.team2_id
+})
+.eq('id',reset.id);
+
+}
+
+}
+
+
+if(reset.active && reset.completed){
+
+await sb.rpc(
+  'set_tournament_champion',
+  {
+    p_tournament_id:tournamentId,
+    p_team_id:reset.winner_id
+  }
+);
+
+}
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+document.getElementById('resetBtn').onclick =
+async () => {
+
+const id =
+document.getElementById('adminTournament').value;
+
+if(!id)
+  return;
+
+if(!confirm(
+'Reset the entire bracket? Team names will remain.'
+))
+  return;
+
+const {error} =
+await sb.rpc(
+'reset_tournament_bracket',
+{p_tournament_id:id}
+);
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+await loadTeams();
+await loadAdminTournament();
+await loadTournaments();
+
+};
+
+
+/* =====================================================
+   DELETE TOURNAMENT
+===================================================== */
+
+document.getElementById('deleteTournamentBtn').onclick =
+async () => {
+
+const id =
+document.getElementById('adminTournament').value;
+
+if(!id)
+  return;
+
+if(!confirm(
+'Permanently delete this tournament, its teams, and all results?'
+))
+  return;
+
+const {error} =
+await sb.rpc(
+'delete_tournament',
+{p_tournament_id:id}
+);
+
+if(error){
+  alert(error.message);
+  return;
+}
+
+await loadTournaments();
+
+document.getElementById('teamList').innerHTML='';
+document.getElementById('adminBracket').innerHTML='';
+
+};
+
+
+/* =====================================================
+   BRACKET DISPLAY
+===================================================== */
+
+async function getTournamentData(id){
+
+const {data:tournament} =
+await sb
+.from('tournaments')
+.select('*')
+.eq('id',id)
+.single();
+
+const {data:teams} =
+await sb
+.from('teams')
+.select('*')
+.eq('tournament_id',id);
+
+const {data:matches} =
+await sb
+.from('matches')
+.select('*')
+.eq('tournament_id',id)
+.eq('active',true)
+.order('display_order');
+
+const teamMap={};
+
+teams.forEach(t=>{
+  teamMap[t.id]=t;
+});
+
+return{
+  tournament,
+  teams,
+  matches,
+  teamMap
+};
+
+}
+
+
+function teamName(id,map){
+
+if(!id)
+  return 'Waiting...';
+
+return map[id]?.name || 'Unknown Team';
+
+}
+
+
+function renderBracket(
+data,
+admin=false
+){
+
+const {
+tournament,
+matches,
+teamMap
+}=data;
+
+if(!matches.length){
+
+return `
+<p class="muted">
+Bracket has not been generated yet.
+</p>
+`;
+
+}
+
+
+const sections=[
+  {
+    title:'🏆 Winners Bracket',
+    code:'W'
+  },
+  {
+    title:'🔥 Losers Bracket',
+    code:'L'
+  },
+  {
+    title:'🏆 Championship',
+    code:'F'
+  }
+];
+
+
+let html='';
+
+
+if(tournament.champion_team_id){
+
+html+=`
+<div class="champion">
+🏆 TOURNAMENT CHAMPION
+<strong>
+${escapeHtml(
+teamName(
+tournament.champion_team_id,
+teamMap
+))}
+</strong>
+</div>
+`;
+
+}
+
+
+for(const section of sections){
+
+const sectionMatches =
+matches.filter(
+m=>m.bracket===section.code
+);
+
+if(!sectionMatches.length)
+  continue;
+
+
+html+=`
+<h2 class="bracketTitle">
+${section.title}
+</h2>
+
+<div class="bracketScroller">
+<div class="bracket">
+`;
+
+
+const rounds =
+[...new Set(
+sectionMatches.map(
+m=>m.round_number
+)
+)];
+
+
+for(const round of rounds){
+
+const roundMatches =
+sectionMatches.filter(
+m=>m.round_number===round
+);
+
+
+html+=`
+<div class="round">
+
+<div class="roundName">
+${roundMatches[0]?.label
+  ?.split('•')[0]
+  || `Round ${round}`}
+</div>
+`;
+
+
+for(const match of roundMatches){
+
+html+=renderMatch(
+match,
+teamMap,
+admin
+);
+
+}
+
+
+html+='</div>';
+
+}
+
+
+html+=`
+</div>
+</div>
+`;
+
+}
+
+
+return html;
+
+}
+
+
+function renderMatch(
+match,
+teamMap,
+admin
+){
+
+const team1 =
+teamMap[match.team1_id];
+
+const team2 =
+teamMap[match.team2_id];
+
+
+function row(team){
+
+if(!team){
+
+return `
+<div class="matchTeam">
+<span>Waiting...</span>
+</div>
+`;
+
+}
+
+
+const winner =
+match.completed &&
+match.winner_id===team.id;
+
+
+const loser =
+match.completed &&
+match.loser_id===team.id;
+
+
+return `
+<div class="matchTeam
+${winner?'winner':''}
+${loser?'loser':''}">
+
+<span>
+${escapeHtml(team.name)}
+${winner?' ✓':''}
+</span>
+
+${
+admin &&
+!match.completed &&
+match.team1_id &&
+match.team2_id
+?
+`
+<button
+class="winButton"
+onclick="chooseWinner(
+'${match.id}',
+'${team.id}'
+)">
+Winner
+</button>
+`
+:
+''
+}
+
+</div>
+`;
+
+}
+
+
+return `
+<div class="match">
+
+<div class="matchLabel">
+${escapeHtml(match.label || 'Match')}
+</div>
+
+${row(team1)}
+${row(team2)}
+
+</div>
+`;
+
+}
+
+
+/* =====================================================
+   LOAD ADMIN
+===================================================== */
+
+async function loadAdminTournament(){
+
+const id =
+document.getElementById('adminTournament').value;
+
+if(!id){
+
+document.getElementById('adminBracket').innerHTML='';
+return;
+
+}
+
+await loadTeams();
+
+const data =
+await getTournamentData(id);
+
+document.getElementById(
+'adminTournamentStatus'
+).innerHTML =
+`
+<p>
+Status:
+<span class="status ${data.tournament.status}">
+${data.tournament.status.toUpperCase()}
+</span>
+</p>
+`;
+
+document.getElementById(
+'adminBracket'
+).innerHTML =
+renderBracket(data,true);
+
+}
+
+
+document.getElementById('adminTournament').onchange =
+loadAdminTournament;
+
+
+/* =====================================================
+   LOAD PUBLIC
+===================================================== */
+
+async function loadPublicTournament(){
+
+const id =
+document.getElementById('publicTournament').value;
+
+if(!id){
+
+document.getElementById('publicBracket').innerHTML='';
+return;
+
+}
+
+const data =
+await getTournamentData(id);
+
+document.getElementById(
+'publicStatus'
+).innerHTML =
+`
+<p>
+Status:
+<span class="status ${data.tournament.status}">
+${data.tournament.status.toUpperCase()}
+</span>
+</p>
+`;
+
+document.getElementById(
+'publicBracket'
+).innerHTML =
+renderBracket(data,false);
+
+}
+
+
+document.getElementById('publicTournament').onchange =
+loadPublicTournament;
+
+
+/* =====================================================
+   REFRESH BOTH
+===================================================== */
+
+async function refreshBrackets(){
+
+await loadAdminTournament();
+
+const adminId =
+document.getElementById('adminTournament').value;
+
+const publicSelect =
+document.getElementById('publicTournament');
+
+if(
+adminId &&
+[...publicSelect.options]
+.some(o=>o.value===adminId)
+){
+
+publicSelect.value=adminId;
+
+await loadPublicTournament();
+
+}
+
+}
+
+
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
+
+function escapeHtml(value){
+
+return String(value)
+.replaceAll('&','&amp;')
+.replaceAll('<','&lt;')
+.replaceAll('>','&gt;')
+.replaceAll('"','&quot;')
+.replaceAll("'","&#039;");
+
+}
+
+
+/* =====================================================
+   LOGIN CHECK
+===================================================== */
+
+async function checkLogin(){
+
+const {
+data:{session}
+} =
+await sb.auth.getSession();
+
+if(session){
+
+adminLogin.style.display='none';
+adminPanel.style.display='block';
+
+}else{
+
+adminLogin.style.display='block';
+adminPanel.style.display='none';
+
+}
+
+}
+
+
+/* =====================================================
+   AUTO REFRESH PUBLIC BRACKET
+===================================================== */
+
+setInterval(
+async ()=>{
+
+const id =
+document.getElementById('publicTournament').value;
+
+if(id){
+  await loadPublicTournament();
+}
+
+},
+5000
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+checkLogin();
+
+loadTournaments();
 
 </script>
 
-
 </body>
-
 </html>

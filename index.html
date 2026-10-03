@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Double Elimination Tournament</title>
+
+  <style>
+
+    :root{
+      --bg:#111827;
+      --panel:#1f2937;
+      --panel2:#263244;
+      --border:#3d4b60;
+      --text:#f9fafb;
+      --muted:#aeb9c8;
+      --accent:#f59e0b;
+      --accent2:#d97706;
+      --blue:#2563eb;
+      --green:#16a34a;
+      --red:#dc2626;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      padding:24px 20px;
+      text-align:center;
+      background:
+        linear-gradient(
+          135deg,
+          #172033,
+          #263a5c
+        );
+      border-bottom:
+        4px solid var(--accent);
+    }
+
+    header h1{
+      margin:0;
+      font-size:2rem;
+    }
+
+    header p{
+      margin:8px 0 0;
+      color:var(--muted);
+    }
+
+    main{
+      width:min(94%,1100px);
+      margin:28px auto;
+    }
+
+    .tabs{
+      display:flex;
+      gap:10px;
+      margin-bottom:18px;
+    }
+
+    button{
+      border:0;
+      border-radius:10px;
+      padding:12px 18px;
+      font-size:1rem;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .primary{
+      background:var(--accent);
+      color:#1f2937;
+    }
+
+    .secondary{
+      background:var(--blue);
+      color:white;
+    }
+
+    .danger{
+      background:var(--red);
+      color:white;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:22px;
+      box-shadow:
+        0 8px 24px rgba(0,0,0,.25);
+    }
+
+    h2{
+      margin-top:0;
+    }
+
+    h3{
+      margin-top:0;
+    }
+
+    .muted{
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .section{
+      margin-top:26px;
+      padding-top:22px;
+      border-top:1px solid var(--border);
+    }
+
+    label{
+      display:block;
+      margin-bottom:8px;
+      font-weight:700;
+    }
+
+    input,
+    select{
+      width:100%;
+      padding:13px;
+      margin-bottom:16px;
+      border-radius:9px;
+      border:1px solid var(--border);
+      font-size:1rem;
+    }
+
+    .bracketArea{
+      overflow-x:auto;
+      margin-top:20px;
+      padding-bottom:12px;
+    }
+
+    .bracket{
+      min-width:850px;
+      display:flex;
+      gap:28px;
+      align-items:flex-start;
+    }
+
+    .round{
+      min-width:220px;
+    }
+
+    .roundTitle{
+      text-align:center;
+      font-weight:700;
+      margin-bottom:14px;
+      color:var(--accent);
+    }
+
+    .match{
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:10px;
+      margin-bottom:18px;
+      overflow:hidden;
+    }
+
+    .team{
+      padding:11px 12px;
+      border-bottom:1px solid var(--border);
+    }
+
+    .team:last-child{
+      border-bottom:0;
+    }
+
+    .winner{
+      background:#17452a;
+      font-weight:700;
+    }
+
+    .bracketHeading{
+      margin-top:30px;
+      padding-bottom:8px;
+      border-bottom:2px solid var(--accent);
+    }
+
+    .champion{
+      margin-top:30px;
+      padding:22px;
+      text-align:center;
+      background:
+        linear-gradient(
+          135deg,
+          #7c4a03,
+          #b66a05
+        );
+      border-radius:14px;
+    }
+
+    .champion strong{
+      display:block;
+      margin-top:8px;
+      font-size:1.5rem;
+    }
+
+    @media(max-width:600px){
+
+      header h1{
+        font-size:1.55rem;
+      }
+
+      main{
+        width:96%;
+      }
+
+      .card{
+        padding:16px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+  <h1>
+    🏆 Double Elimination Tournament
+  </h1>
+
+  <p>
+    Winners Bracket • Losers Bracket • Championship
+  </p>
+
+</header>
+
+
+<main>
+
+
+  <div class="tabs">
+
+    <button
+      id="bracketTab"
+      class="primary"
+      type="button"
+    >
+      Tournament Bracket
+    </button>
+
+    <button
+      id="adminTab"
+      class="secondary"
+      type="button"
+    >
+      Admin
+    </button>
+
+  </div>
+
+
+
+  <!-- PUBLIC BRACKET -->
+
+  <section
+    id="bracketView"
+    class="card"
+  >
+
+    <h2>
+      Tournament Bracket
+    </h2>
+
+    <p class="muted">
+      Tournament results and matchups will
+      appear here as games are completed.
+    </p>
+
+
+    <label for="publicTournament">
+      Tournament
+    </label>
+
+    <select id="publicTournament">
+
+      <option>
+        Sample Tournament
+      </option>
+
+    </select>
+
+
+
+    <h2 class="bracketHeading">
+      🏆 Winners Bracket
+    </h2>
+
+
+    <div class="bracketArea">
+
+      <div class="bracket">
+
+
+        <div class="round">
+
+          <div class="roundTitle">
+            Round 1
+          </div>
+
+          <div class="match">
+
+            <div class="team">
+              Team 1
+            </div>
+
+            <div class="team">
+              Team 8
+            </div>
+
+          </div>
+
+
+          <div class="match">
+
+            <div class="team">
+              Team 4
+            </div>
+
+            <div class="team">
+              Team 5
+            </div>
+
+          </div>
+
+
+          <div class="match">
+
+            <div class="team">
+              Team 2
+            </div>
+
+            <div class="team">
+              Team 7
+            </div>
+
+          </div>
+
+
+          <div class="match">
+
+            <div class="team">
+              Team 3
+            </div>
+
+            <div class="team">
+              Team 6
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="round">
+
+          <div class="roundTitle">
+            Semifinals
+          </div>
+
+          <div class="match">
+
+            <div class="team">
+              Winner Game 1
+            </div>
+
+            <div class="team">
+              Winner Game 2
+            </div>
+
+          </div>
+
+
+          <div class="match">
+
+            <div class="team">
+              Winner Game 3
+            </div>
+
+            <div class="team">
+              Winner Game 4
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="round">
+
+          <div class="roundTitle">
+            Winners Final
+          </div>
+
+          <div class="match">
+
+            <div class="team">
+              Semifinal Winner
+            </div>
+
+            <div class="team">
+              Semifinal Winner
+            </div>
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+    </div>
+
+
+
+    <h2 class="bracketHeading">
+      🔥 Losers Bracket
+    </h2>
+
+
+    <div class="bracketArea">
+
+      <div class="bracket">
+
+
+        <div class="round">
+
+          <div class="roundTitle">
+            Losers Round 1
+          </div>
+
+          <div class="match">
+
+            <div class="team">
+              Waiting
+            </div>
+
+            <div class="team">
+              Waiting
+            </div>
+
+          </div>
+
+
+          <div class="match">
+
+            <div class="team">
+              Waiting
+            </div>
+
+            <div class="team">
+              Waiting
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="round">
+
+          <div class="roundTitle">
+            Losers Round 2
+          </div>
+
+          <div class="match">
+
+            <div class="team">
+              Waiting
+            </div>
+
+            <div class="team">
+              Waiting
+            </div>
+
+          </div>
+
+
+          <div class="match">
+
+            <div class="team">
+              Waiting
+            </div>
+
+            <div class="team">
+              Waiting
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="round">
+
+          <div class="roundTitle">
+            Losers Final
+          </div>
+
+          <div class="match">
+
+            <div class="team">
+              Waiting
+            </div>
+
+            <div class="team">
+              Waiting
+            </div>
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+    </div>
+
+
+
+    <h2 class="bracketHeading">
+      🏆 Championship
+    </h2>
+
+
+    <div class="bracketArea">
+
+      <div
+        class="match"
+        style="max-width:320px;"
+      >
+
+        <div class="team">
+          Winners Bracket Champion
+        </div>
+
+        <div class="team">
+          Losers Bracket Champion
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div
+      class="champion"
+      style="display:none;"
+      id="championBox"
+    >
+
+      🏆 TOURNAMENT CHAMPION
+
+      <strong id="championName">
+        Team Name
+      </strong>
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- ADMIN -->
+
+  <section
+    id="adminView"
+    class="card"
+    style="display:none;"
+  >
+
+    <h2>
+      Tournament Admin
+    </h2>
+
+    <p class="muted">
+      This is where you will create tournaments,
+      enter teams, generate brackets, and select
+      game winners.
+    </p>
+
+
+
+    <div class="section">
+
+      <h3>
+        Create Tournament
+      </h3>
+
+      <label for="tournamentName">
+        Tournament Name
+      </label>
+
+      <input
+        id="tournamentName"
+        type="text"
+        placeholder="Example: Fall Basketball Tournament"
+      >
+
+
+      <button
+        class="primary"
+        type="button"
+      >
+        Create Tournament
+      </button>
+
+    </div>
+
+
+
+    <div class="section">
+
+      <h3>
+        Manage Tournament
+      </h3>
+
+      <label for="adminTournament">
+        Select Tournament
+      </label>
+
+      <select id="adminTournament">
+
+        <option>
+          Sample Tournament
+        </option>
+
+      </select>
+
+    </div>
+
+
+
+    <div class="section">
+
+      <h3>
+        Teams
+      </h3>
+
+      <label for="teamName">
+        Team Name
+      </label>
+
+      <input
+        id="teamName"
+        type="text"
+        placeholder="Enter team name"
+      >
+
+
+      <button
+        class="primary"
+        type="button"
+      >
+        Add Team
+      </button>
+
+    </div>
+
+
+
+    <div class="section">
+
+      <h3>
+        Generate Bracket
+      </h3>
+
+      <p class="muted">
+        Once all teams are entered, this will
+        create the Winners Bracket, Losers
+        Bracket, and Championship automatically.
+      </p>
+
+      <button
+        class="secondary"
+        type="button"
+      >
+        Generate Double-Elimination Bracket
+      </button>
+
+    </div>
+
+
+  </section>
+
+
+</main>
+
+
+
+<script>
+
+
+const bracketTab =
+  document.getElementById(
+    'bracketTab'
+  );
+
+
+const adminTab =
+  document.getElementById(
+    'adminTab'
+  );
+
+
+const bracketView =
+  document.getElementById(
+    'bracketView'
+  );
+
+
+const adminView =
+  document.getElementById(
+    'adminView'
+  );
+
+
+
+function showBracket(){
+
+  bracketView.style.display =
+    'block';
+
+  adminView.style.display =
+    'none';
+
+}
+
+
+
+function showAdmin(){
+
+  bracketView.style.display =
+    'none';
+
+  adminView.style.display =
+    'block';
+
+}
+
+
+
+bracketTab.onclick =
+  showBracket;
+
+
+adminTab.onclick =
+  showAdmin;
+
+
+</script>
+
+
+</body>
+
+</html>
